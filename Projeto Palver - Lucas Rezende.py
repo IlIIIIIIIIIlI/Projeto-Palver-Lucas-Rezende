@@ -163,8 +163,66 @@ def scrape_g1(number_of_news=10):
 
     return news_df
 
-uol_df = scrape_uol()
-save_df(uol_df)
 
+def scrape_r7(number_of_news=10):
+    target_url = 'https://www.r7.com/arc/outboundfeeds/sitemap-news/?outputType=xml'
+    response = request_url(target_url)  # coletando o xml do uol
+
+    soup = bs(response.content, "xml")
+
+    # monto o dicionário contendo as chaves
+    news_dict = [
+        {
+            "Veículo": 'R7',
+            "Link da matéria": url.loc.text,
+            "Título da matéria": url.find('news:title').text.strip(),
+            "Subtítulo": "",
+            "Data (em ISO)": url.lastmod.text
+        }
+        for url in soup.find_all("url")]
+
+    # Formatar as datas no formato ISO
+    # exemplo: 2025-06-28T23:53:48.288Z<
+    print(f'Processando urls - R7')
+
+    date_formats = ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"]
+
+    for i in range(len(news_dict)):
+        date = news_dict[i]['Data (em ISO)']
+
+        for date_format in date_formats:
+            try:
+                date_dt = datetime.strptime(date, date_format)
+                break
+
+            except ValueError:
+                continue
+        else:
+            print(f'Formato não reconhecido para a data: {date}')
+            raise Exception
+
+        news_dict[i]['Data (em ISO)'] = date_dt
+
+    news_df = collect_recent_news(news_dict, number_of_news)
+
+    for i in range(len(news_df)):
+
+        response = request_url(news_df['Link da matéria'][i], print_status=False)
+
+        if response:
+            soup = bs(response.content, "html.parser")
+            subtitle = soup.select('h2.base-font-primary')
+            if subtitle:  # r7 nem sempre tem subtítulo
+                subtitle = subtitle[0].text  # o resultado retornado é uma lista com 1 elemento
+                news_df.loc[i, "Subtítulo"] = subtitle
+
+    print('Urls processadas com sucesso.')
+    return news_df
+
+
+uol_df = scrape_uol()
 g1_df = scrape_g1()
-save_df(g1_df, mode='a')
+r7_df = scrape_r7()
+
+final_df = pd.concat([uol_df, g1_df, r7_df], ignore_index=True)
+save_df(final_df)
