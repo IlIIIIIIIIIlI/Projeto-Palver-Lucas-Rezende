@@ -58,16 +58,15 @@ def request_url(url, print_status=True):
 
 def collect_recent_news(data: dict, n=10):
     df = pd.DataFrame(data)
-    df['Data (em ISO)'] = pd.to_datetime(df['Data (em ISO)'])
-
+    df['Data (em ISO)'] = pd.to_datetime(df['Data (em ISO)'], format='ISO8601')
     df.sort_values('Data (em ISO)', ascending=False)
 
     return df[0:n]
 
 
 def save_df(df, mode='w'):
-    df.to_csv('result.csv',mode=mode, header=False, index=False, encoding='utf-8-sig')
-    print('Dados salvos com sucesso.')
+    df.to_csv('result.csv', mode=mode, header=False, index=False, encoding='utf-8-sig')
+    print('Dados salvos.')
 
 
 def scrape_uol(number_of_news=10):
@@ -98,7 +97,7 @@ def scrape_uol(number_of_news=10):
 
     news_df = collect_recent_news(news_dict, number_of_news)
 
-    print(f'Processando urls - UOL')
+    print(f'Processando urls - UOL', end='\r')
     for i in range(len(news_df)):
 
         response = request_url(news_df['Link da matéria'][i], print_status=False)
@@ -140,7 +139,7 @@ def scrape_g1(number_of_news=10):
         for item in soup.find_all("item")]
 
     # Formatar as datas no formato ISO
-    print(f'Processando urls - G1')
+    print(f'Processando urls - G1', end='\r')
     for i in range(len(news_dict)):
         date = news_dict[i]['Data (em ISO)']
         date_dt = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
@@ -183,7 +182,7 @@ def scrape_r7(number_of_news=10):
 
     # Formatar as datas no formato ISO
     # exemplo: 2025-06-28T23:53:48.288Z<
-    print(f'Processando urls - R7')
+    print(f'Processando urls - R7', end='\r')
 
     date_formats = ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"]
 
