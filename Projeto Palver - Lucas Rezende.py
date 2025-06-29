@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from time import sleep
 from tqdm import tqdm # mostra a barra de carregamento
-import datetime
+from datetime import datetime
 
 
 def request_url(url, print_status=True):
@@ -65,8 +65,8 @@ def collect_recent_news(data: dict, n=10):
     return df[0:n]
 
 
-def save_df(df):
-    df.to_csv('result.csv', index=False, encoding='utf-8-sig')
+def save_df(df, mode='w'):
+    df.to_csv('result.csv',mode=mode, header=False, index=False, encoding='utf-8-sig')
     print('Dados salvos com sucesso.')
 
 
@@ -144,7 +144,7 @@ def scrape_g1(number_of_news=10):
     for i in range(len(news_dict)):
         date = news_dict[i]['Data (em ISO)']
         date_dt = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
-        date_iso = data_dt.isoformat()
+        date_iso = date_dt.isoformat()
         news_dict[i]['Data (em ISO)'] = date_iso
 
     news_df = collect_recent_news(news_dict, number_of_news)
@@ -165,3 +165,6 @@ def scrape_g1(number_of_news=10):
 
 uol_df = scrape_uol()
 save_df(uol_df)
+
+g1_df = scrape_g1()
+save_df(g1_df, mode='a')
