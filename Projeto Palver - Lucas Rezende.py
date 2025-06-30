@@ -56,12 +56,11 @@ def request_url(url, print_status=True):
     return response
 
 
-def collect_recent_news(data: dict, n=10):
+def collect_recent_news(data: list, n=10):
     df = pd.DataFrame(data)
-    df['Data (em ISO)'] = pd.to_datetime(df['Data (em ISO)'], format='ISO8601')
-    df.sort_values('Data (em ISO)', ascending=False)
-
-    return df[0:n]
+    df['Data (em ISO)'] = pd.to_datetime(df['Data (em ISO)'], errors='coerce')
+    df = df.sort_values('Data (em ISO)', ascending=False)
+    return df.head(n).reset_index(drop=True)
 
 
 def save_df(df, mode='w'):
@@ -70,17 +69,8 @@ def save_df(df, mode='w'):
 
 
 def scrape_uol(number_of_news=10):
-    """
-    Função cujo objetivo é coletar urls e datas a partir do site-maps, e salvar as n notícias mais recentes
-    num data frame.
-    Dessas n mais recentes, uma nova requisição será feita para coletar o título da matéria.
-
-    Observações: Na página do uol, no head do html estão inclusas as meta tags, o título encontra-se nessa '# <meta property="og:title"'
-                 Exemplo: # <meta property="og:title" content="Carla Araújo: Motta surpreende com reviravolta política para queda do IOF">
-    """
-
     target_url = 'https://noticias.uol.com.br/sitemap/v2/today.xml'
-    response = request_url(target_url)  # coletando o xml do uol
+    response = request_url(target_url, print_status=False)  # coletando o xml do uol
 
     soup = bs(response.content, "xml")
 
@@ -97,7 +87,7 @@ def scrape_uol(number_of_news=10):
 
     news_df = collect_recent_news(news_dict, number_of_news)
 
-    print(f'Processando urls - UOL', end='\r')
+    print(f'Processando urls - UOL...', end='\r')
     for i in range(len(news_df)):
 
         response = request_url(news_df['Link da matéria'][i], print_status=False)
@@ -108,22 +98,13 @@ def scrape_uol(number_of_news=10):
                 'content']  # o resultado retornado é uma lista com 1 elemento
             news_df.loc[i, "Título da matéria"] = title
 
-    print('Urls processadas com sucesso.')
+    print(f'Processando urls - UOL...urls processadas com sucesso.')
     return news_df
 
 
 def scrape_g1(number_of_news=10):
-    """
-    Função cujo objetivo é coletar urls e datas a partir do site-maps, e salvar as n notícias mais recentes
-    num data frame.
-    Dessas n mais recentes, uma nova requisição será feita para coletar o título da matéria.
-
-    Observações: Na página do uol, no head do html estão inclusas as meta tags, o título encontra-se nessa '# <meta property="og:title"'
-                 Exemplo: # <meta property="og:title" content="Carla Araújo: Motta surpreende com reviravolta política para queda do IOF">
-    """
-
     target_url = 'https://g1.globo.com/rss/g1/educacao/'
-    response = request_url(target_url)  # coletando o xml do uol
+    response = request_url(target_url, print_status=False)  # coletando o xml do uol
 
     soup = bs(response.content, "xml")
 
@@ -139,12 +120,12 @@ def scrape_g1(number_of_news=10):
         for item in soup.find_all("item")]
 
     # Formatar as datas no formato ISO
-    print(f'Processando urls - G1', end='\r')
+    print(f'Processando urls - G1...', end='\r')
+
     for i in range(len(news_dict)):
         date = news_dict[i]['Data (em ISO)']
         date_dt = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
-        date_iso = date_dt.isoformat()
-        news_dict[i]['Data (em ISO)'] = date_iso
+        news_dict[i]['Data (em ISO)'] = date_dt
 
     news_df = collect_recent_news(news_dict, number_of_news)
 
@@ -158,14 +139,14 @@ def scrape_g1(number_of_news=10):
                 'content']  # o resultado retornado é uma lista com 1 elemento
             news_df.loc[i, "Subtítulo"] = subtitle
 
-    print('Urls processadas com sucesso.')
+    print(f'Processando urls - G1...urls processadas com sucesso')
 
     return news_df
 
 
 def scrape_r7(number_of_news=10):
     target_url = 'https://www.r7.com/arc/outboundfeeds/sitemap-news/?outputType=xml'
-    response = request_url(target_url)  # coletando o xml do uol
+    response = request_url(target_url, print_status=False)  # coletando o xml do uol
 
     soup = bs(response.content, "xml")
 
@@ -182,7 +163,7 @@ def scrape_r7(number_of_news=10):
 
     # Formatar as datas no formato ISO
     # exemplo: 2025-06-28T23:53:48.288Z<
-    print(f'Processando urls - R7', end='\r')
+    print(f'Processando urls - R7...', end='\r')
 
     date_formats = ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"]
 
@@ -215,7 +196,7 @@ def scrape_r7(number_of_news=10):
                 subtitle = subtitle[0].text  # o resultado retornado é uma lista com 1 elemento
                 news_df.loc[i, "Subtítulo"] = subtitle
 
-    print('Urls processadas com sucesso.')
+    print(f'Processando urls - R7...urls processadas com sucesso.', )
     return news_df
 
 
